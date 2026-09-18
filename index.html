@@ -3957,13 +3957,12 @@ async function sendAiQuestion() {
   addUserMsg(question);
   showTyping();
 
-  // সামান্য বিলম্ব — স্বাভাবিক মনে হবে
-  await new Promise(r => setTimeout(r, 700));
-
   try {
-    const answer = await localAiAnswer(question);
+    const res = await fetch('https://script.google.com/macros/s/AKfycbzqmSHd8ZklAMQDFk2wG8lcAlFcf4BcoROiT1xCLwm5uSoo6HmJaEzmUBI7w0eRfAuK/exec?ai=1&q=' + encodeURIComponent(question));
+    const data = await res.json();
+    const answer = data.answer || 'দুঃখিত, উত্তর পাওয়া যায়নি।';
     addBotMsg(answer);
-  } catch(e) {
+  } catch (e) {
     addBotMsg("⚠️ উত্তর দিতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
   }
 
