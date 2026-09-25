@@ -2702,18 +2702,38 @@ async function renderCharts() {
   });
 
   // ===== বছরভিত্তিক তুলনা — ইতোমধ্যে লোড হওয়া ক্যাশ ব্যবহার =====
+  // ===== বছরভিত্তিক তুলনা — লেবেল খুঁজে বের করে (fixed row-number নয়) =====
   let total25Joma=0, total25Jorimana=0, total26Joma=0, total26Jorimana=0;
+
+  const bn2enDigitsLocal = s => String(s).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d));
 
   for (const mdata of memberDataArr) {
     if (!mdata) continue;
     try {
-      total25Joma     += Number(mdata[28]?.[2]) || 0;
-      total25Jorimana += Number(mdata[28]?.[3]) || 0;
-      total26Joma     += Number(mdata[29]?.[2]) || 0;
-      total26Jorimana += Number(mdata[29]?.[3]) || 0;
+      for (let i = 0; i < mdata.length; i++) {
+        const row = mdata[i];
+        if (!row) continue;
+        const label = String(row[1] || '').trim();
+        if (!label || !label.includes('সালের জমা')) continue;
+
+        const numMatch = bn2enDigitsLocal(label).match(/\d+/);
+        if (!numMatch) continue;
+        const yy = numMatch[0];
+        const yearLabel = yy.length === 2 ? '20' + yy : yy;
+
+        const joma     = Number(row[2] || 0);
+        const jorimana = Number(row[3] || 0);
+
+        if (yearLabel === '2025') {
+          total25Joma     += joma;
+          total25Jorimana += jorimana;
+        } else if (yearLabel === '2026') {
+          total26Joma     += joma;
+          total26Jorimana += jorimana;
+        }
+      }
     } catch(e) {}
   }
-
   new Chart(document.getElementById('yearChart'), {
     type: 'bar',
     data: {
