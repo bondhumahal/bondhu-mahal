@@ -1005,14 +1005,28 @@ canvas { width:100% !important; }
 
 /* ===== হিসাব পেইজ ট্যাব ===== */
 .report-tabs {
-  display:flex; gap:6px; background:#e9e9f2; border-radius:14px; padding:5px;
-  margin-bottom:14px; box-shadow: inset 3px 3px 6px #c6c6d6, inset -3px -3px 6px #ffffff;
+  display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;
 }
 .report-tab {
-  flex:1; text-align:center; font-size:11.5px; font-weight:700; padding:9px 4px;
-  border-radius:10px; color:#8b8aa0; cursor:pointer; user-select:none;
+  display:flex; align-items:center; gap:10px; padding:12px 10px; border-radius:18px;
+  background:#e9e9f2; color:#2b2a3a; cursor:pointer; user-select:none;
+  box-shadow:5px 5px 11px #c6c6d6, -5px -5px 11px #ffffff;
+  transition:transform .12s;
 }
-.report-tab.active { background:#fff; color:#4c1d95; box-shadow:0 3px 8px rgba(43,42,58,0.12); }
+.report-tab:active { transform:scale(0.97); }
+.report-tab .rt-ic {
+  width:38px; height:38px; border-radius:12px; flex-shrink:0; font-size:19px;
+  background:linear-gradient(135deg,var(--g1),var(--g2));
+  display:flex; align-items:center; justify-content:center;
+}
+.report-tab .rt-t { font-size:13.5px; font-weight:800; }
+.report-tab .rt-s { font-size:10.5px; font-weight:600; color:#8b8aa0; margin-top:2px; }
+.report-tab.active {
+  background:linear-gradient(135deg,var(--g1),var(--g2)); color:#fff;
+  box-shadow:0 6px 14px rgba(43,42,58,0.25);
+}
+.report-tab.active .rt-ic { background:rgba(255,255,255,0.22); }
+.report-tab.active .rt-s { color:rgba(255,255,255,0.88); }
 .report-tab-panel { display:none; }
 .report-tab-panel.active { display:block; }
 
@@ -2849,9 +2863,22 @@ async function renderReport() {
     </div>
 
     <div class="report-tabs">
-      <div class="report-tab active" data-tab="invest" onclick="showReportTab('invest')">📊 ইনভেস্ট</div>
-      <div class="report-tab" data-tab="khorch" onclick="showReportTab('khorch')">💸 খরচ</div>
-      <div class="report-tab" data-tab="summary" onclick="showReportTab('summary')">📋 সারাংশ</div>
+      <div class="report-tab active" data-tab="invest" onclick="showReportTab('invest')" style="--g1:#4c1d95;--g2:#7c3aed;">
+        <div class="rt-ic">📊</div>
+        <div><div class="rt-t">ইনভেস্ট</div><div class="rt-s">মোট লাভ ৳${Number(totalLav||0).toLocaleString('en-IN')}</div></div>
+      </div>
+      <div class="report-tab" data-tab="khorch" onclick="showReportTab('khorch')" style="--g1:#dc2626;--g2:#f97316;">
+        <div class="rt-ic">💸</div>
+        <div><div class="rt-t">খরচ</div><div class="rt-s">মোট ৳${Number(totalKhorch||0).toLocaleString('en-IN')}</div></div>
+      </div>
+      <div class="report-tab" data-tab="summary" onclick="showReportTab('summary')" style="--g1:#1e3a5f;--g2:#2d6a9f;">
+        <div class="rt-ic">📋</div>
+        <div><div class="rt-t">সারাংশ</div><div class="rt-s">নিট ৳${(Number(totalJoma||0)+Number(totalLav||0)-Number(totalKhorch||0)).toLocaleString('en-IN')}</div></div>
+      </div>
+      <div class="report-tab" data-tab="target" onclick="showReportTab('target')" style="--g1:#047857;--g2:#10b981;">
+        <div class="rt-ic">🎯</div>
+        <div><div class="rt-t">লক্ষ্যমাত্রা</div><div class="rt-s" id="rt-target-sub">বার্ষিক লক্ষ্য দেখুন</div></div>
+      </div>
     </div>
 
     <div id="report-tab-invest" class="report-tab-panel active">
@@ -2981,10 +3008,195 @@ async function renderReport() {
       </div>
     </div>
     </div>
+
+    <div id="report-tab-target" class="report-tab-panel">
+      <div id="target-card"><div class="loading"><div class="spinner"></div>লোড হচ্ছে...</div></div>
+    </div>
   `;
   // বিনিয়োগ ও খরচ শিট লোড করো
   loadInvestmentSheet();
   loadKhorchSheet();
+  renderTargetCard(totalJoma, totalLav, totalKhorch);
+}
+
+// ===== বার্ষিক লক্ষ্যমাত্রা =====
+// Google Sheet-এ "Lokkho" শিট: A=বছর, B=সঞ্চয়ের লক্ষ্যমাত্রা, C=বিনিয়োগ থেকে লাভের লক্ষ্যমাত্রা, D=সর্বমোট লক্ষ্যমাত্রা
+// অ্যাপে কলামের নাম শিটের হেডার (প্রথম সারি) থেকেই নেওয়া হয়
+const TARGET_SHEET = 'Lokkho';
+
+// নির্দিষ্ট বছরে আসলে কত সঞ্চয় জমা হয়েছে ও কত লাভ এসেছে
+async function getYearActuals(year, fyYear) {
+  const bn = s => String(s == null ? '' : s).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d));
+  let joma = 0, lav = 0, badDates = 0;
+  // সঞ্চয়: চার্ট পেজের মতোই — সদস্যদের "XX সালের জমা" সারি
+  try {
+    const arr = await Promise.all(MEMBERS.map(m => loadMemberData(m.sheet)));
+    arr.forEach(md => {
+      if (!md) return;
+      md.forEach(row => {
+        if (!row) return;
+        const label = String(row[1] || '').trim();
+        if (!label.includes('সালের জমা')) return;
+        const nm = bn(label).match(/\d+/);
+        if (!nm) return;
+        const y = nm[0].length === 2 ? 2000 + parseInt(nm[0], 10) : parseInt(nm[0], 10);
+        if (y === year) joma += Number(row[2] || 0);
+      });
+    });
+  } catch (e) {}
+  // লাভ: লাভের বছর = ১ ফেব্রুয়ারি থেকে পরের বছরের জানুয়ারি
+  const MONTHS = { jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12,
+    'জানুয়ারি':1, 'ফেব্রুয়ারি':2, 'মার্চ':3, 'এপ্রিল':4, 'মে':5, 'জুন':6, 'জুলাই':7, 'আগস্ট':8, 'সেপ্টেম্বর':9, 'অক্টোবর':10, 'নভেম্বর':11, 'ডিসেম্বর':12 };
+  const yy = v => { v = parseInt(v, 10); return v < 100 ? 2000 + v : v; };
+  const parseDate = raw => {
+    const t = bn(raw).trim();
+    if (!t) return null;
+    if (/^\d{4}-\d{2}-\d{2}T/.test(t)) { const dt = new Date(t); if (!isNaN(dt)) return { y: dt.getFullYear(), m: dt.getMonth() + 1 }; }
+    let m = t.match(/(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+    if (m) return { y: +m[1], m: +m[2] };
+    m = t.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4}|\d{2})\b/);
+    if (m) return { y: yy(m[3]), m: +m[2] }; // দিন/মাস/বছর
+    m = t.match(/(\d{1,2})[\s\-\/.]*([^\s\d,.\/\-]+)[\s,.\-]*(\d{4}|\d{2})\b/);
+    if (m) {
+      const key = m[2].toLowerCase();
+      const mo = MONTHS[key] || MONTHS[key.slice(0, 3)];
+      if (mo) return { y: yy(m[3]), m: mo };
+    }
+    return null;
+  };
+  try {
+    const res = await fetch(API_URL + '?sheet=Biniyog');
+    const json = await res.json();
+    (json.data || []).slice(2, 38).forEach(r => {
+      if (!r) return;
+      const amt = Number(String(r[5] == null ? '' : r[5]).replace(/[,৳ ]/g, '')) || 0;
+      if (!amt) return;
+      const d = parseDate(r[4]);
+      if (!d) { badDates++; return; }
+      const fy = d.m >= 2 ? d.y : d.y - 1;
+      if (fy === fyYear) lav += amt;
+    });
+  } catch (e) {}
+  return { joma, lav, badDates };
+}
+
+async function renderTargetCard(totalJoma, totalLav, totalKhorch) {
+  const el = document.getElementById('target-card');
+  if (!el) return;
+
+  const num = v => {
+    const n = parseFloat(toEnNum(String(v == null ? '' : v)).replace(/[^0-9.\-]/g, ''));
+    return isNaN(n) ? 0 : n;
+  };
+  const money = n => '৳' + Math.round(n).toLocaleString('en-IN');
+
+  // শিট পড়া
+  let allRows = [];
+  const lbl = { year: 'বছর', joma: 'সঞ্চয়ের লক্ষ্যমাত্রা', lav: 'বিনিয়োগ থেকে লাভের লক্ষ্যমাত্রা', total: 'সর্বমোট লক্ষ্যমাত্রা' };
+  try {
+    const res = await fetch(API_URL + '?sheet=' + TARGET_SHEET);
+    const json = await res.json();
+    const rows = (json && json.data) || [];
+    if (rows[0]) {
+      const h = k => String(rows[0][k] == null ? '' : rows[0][k]).trim();
+      if (h(0)) lbl.year = h(0);
+      if (h(1)) lbl.joma = h(1);
+      if (h(2)) lbl.lav = h(2);
+      if (h(3)) lbl.total = h(3);
+    }
+    rows.forEach(r => {
+      const m = toEnNum(String(r[0] == null ? '' : r[0])).match(/\d{4}/);
+      if (m) allRows.push({ year: parseInt(m[0], 10), joma: num(r[1]), lav: num(r[2]), total: num(r[3]) });
+    });
+    allRows.sort((a, b) => a.year - b.year);
+  } catch (e) {}
+
+  if (!allRows.some(r => r.joma > 0 || r.lav > 0 || r.total > 0)) {
+    el.innerHTML = '<div class="chart-card" style="text-align:center;">' +
+      '<div style="font-size:30px;margin-bottom:8px;">🎯</div>' +
+      '<div style="font-size:14px;font-weight:700;color:#4c1d95;margin-bottom:6px;">লক্ষ্যমাত্রা পাওয়া যায়নি</div>' +
+      '<div style="font-size:12px;color:#8b8aa0;line-height:1.7;">Google Sheet-এর <b>' + TARGET_SHEET + '</b> শিটে বছরের লক্ষ্য লিখুন।</div></div>';
+    return;
+  }
+
+  // ১–১৫ জানুয়ারি পর্যন্ত আগের বছরের ডিসেম্বরের জমা চলে, তাই তখন আগের বছরের লক্ষ্যই দেখানো হয়
+  const nowD = new Date();
+  const cy = (nowD.getMonth() === 0 && nowD.getDate() <= 15) ? nowD.getFullYear() - 1 : nowD.getFullYear();
+  const cur = allRows.find(r => r.year === cy);
+
+  // ===== চলতি বছরের অগ্রগতি =====
+  let cardHtml = '';
+  const fy = nowD.getMonth() >= 1 ? nowD.getFullYear() : nowD.getFullYear() - 1; // লাভের বছর ফেব্রুয়ারিতে শুরু
+  const curFy = allRows.find(r => r.year === fy);
+  if (cur || curFy) {
+    const act = await getYearActuals(cy, fy);
+    const fundNow = num(totalJoma) + num(totalLav) - num(totalKhorch); // মোট সঞ্চয় + মোট লাভ − মোট খরচ
+    // সমিতির নিয়ম: প্রতি মাসের সঞ্চয় পরের মাসের ১৫ তারিখের মধ্যে জমা — যে মাসের শেষ তারিখ এখনো পার হয়নি সেটাই বাকি
+    const todayD = new Date(); todayD.setHours(0, 0, 0, 0);
+    let monthsLeft = 0;
+    for (let mi = 0; mi < 12; mi++) { if (new Date(cy, mi + 1, 15) >= todayD) monthsLeft++; }
+    const ts = document.getElementById('rt-target-sub');
+    if (ts && cur && cur.total > 0) ts.textContent = cy + ' লক্ষ্য: ' + Math.round(fundNow / cur.total * 100) + '% অর্জিত';
+
+    const block = (label, color, now, tgt, nowLabel, sub) => {
+      const p = tgt > 0 ? Math.round(now / tgt * 100) : 0;
+      const done = p >= 100;
+      return '<div style="margin-bottom:18px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">' +
+          '<span style="font-size:12px;font-weight:600;color:#4b4a5c;">' + label + (sub ? '<br><span style="font-size:10px;font-weight:500;color:#8b8aa0;">' + sub + '</span>' : '') + '</span>' +
+          '<span style="font-size:20px;font-weight:800;color:' + (done ? '#059669' : color) + ';">' + p + '%</span>' +
+        '</div>' +
+        '<div style="height:8px;border-radius:6px;background:#d6d5e6;margin:8px 0 7px;overflow:hidden;">' +
+          '<div style="height:100%;width:' + Math.min(p, 100) + '%;border-radius:6px;background:' + (done ? '#059669' : color) + ';"></div></div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:#8b8aa0;">' +
+          '<span>' + nowLabel + ' <b style="color:' + color + ';">' + money(now) + '</b></span>' +
+          '<span>লক্ষ্য <b style="color:#2b2a3a;">' + money(tgt) + '</b></span>' +
+        '</div>' +
+        '<div style="font-size:10.5px;color:#8b8aa0;margin-top:3px;">' + (done ? '✅ লক্ষ্য পূর্ণ' : 'বাকি ' + money(tgt - now)) + '</div>' +
+      '</div>';
+    };
+
+    cardHtml =
+      '<div class="chart-card">' +
+        '<div class="chart-title" style="justify-content:space-between;">' +
+          '<span style="display:flex;align-items:center;gap:8px;">' +
+            '<span style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:15px;">🎯</span>' +
+            cy + ' সাল' +
+          '</span>' +
+          '<span style="font-size:10.5px;font-weight:600;color:#8b8aa0;">বছর শেষে বাকি ' + monthsLeft + ' মাস</span>' +
+        '</div>' +
+        (cur && cur.joma > 0 ? block(lbl.joma, '#7c3aed', act.joma, cur.joma, 'এ বছর এ পর্যন্ত') : '') +
+        (curFy && curFy.lav > 0 ? block(lbl.lav, '#059669', act.lav, curFy.lav, 'এ বছর এ পর্যন্ত', 'ফেব্রুয়ারি ' + fy + ' – জানুয়ারি ' + (fy + 1)) + (act.badDates ? '<div style="font-size:10px;color:#ef4444;margin:-12px 0 14px;">⚠️ ' + act.badDates + 'টি লাভের তারিখ পড়া যায়নি</div>' : '') : '') +
+        (cur && cur.total > 0 ? '<div style="border-top:1px dashed #cfcee0;padding-top:16px;">' + block(lbl.total, '#4c1d95', fundNow, cur.total, 'এ পর্যন্ত মোট', 'সঞ্চয় + লাভ − খরচ') + '</div>' : '') +
+      '</div>';
+  }
+
+  // ===== সব বছরের তালিকা =====
+  const cell = v => v > 0 ? money(v) : '—';
+  const grid = 'display:grid;grid-template-columns:38px 1fr 1fr 1fr;gap:6px;align-items:center;';
+  const rowsHtml = allRows.map(r => {
+    const isCur = r.year === cy;
+    return '<div style="' + grid + 'padding:10px 8px;border-radius:12px;font-size:11px;' +
+      (isCur ? 'background:#fff;box-shadow:0 3px 10px rgba(108,61,213,0.18);' : 'border-bottom:1px dashed #dcdbea;') + '">' +
+      '<b style="font-size:12px;color:' + (isCur ? '#4c1d95' : '#2b2a3a') + ';">' + r.year + '</b>' +
+      '<span style="color:#7c3aed;font-weight:600;">' + cell(r.joma) + '</span>' +
+      '<span style="color:#059669;font-weight:600;">' + cell(r.lav) + '</span>' +
+      '<b style="color:#4c1d95;">' + cell(r.total) + '</b></div>';
+  }).join('');
+
+  const tableHtml =
+    '<div class="chart-card">' +
+      '<div class="chart-title">' +
+        '<span style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#1e3a5f,#2d6a9f);display:flex;align-items:center;justify-content:center;font-size:15px;">📅</span>' +
+        'সব বছরের লক্ষ্যমাত্রা' +
+      '</div>' +
+      '<div style="' + grid + 'padding:0 8px 8px;font-size:9.5px;font-weight:700;color:#8b8aa0;line-height:1.35;border-bottom:1px solid #d3d3e0;margin-bottom:4px;">' +
+        '<span>' + lbl.year + '</span><span>' + lbl.joma + '</span><span>' + lbl.lav + '</span><span>' + lbl.total + '</span></div>' +
+      rowsHtml +
+      '<div style="font-size:10px;color:#8b8aa0;margin-top:10px;padding:0 8px;">লাভের বছর: ফেব্রুয়ারি থেকে পরের বছরের জানুয়ারি</div>' +
+    '</div>';
+
+  el.innerHTML = cardHtml + tableHtml;
 }
 
 function showReportTab(tab) {
