@@ -4142,52 +4142,40 @@ function nomineeLogout(){nomineeLoggedIn=null;showNomineePage();}
 
 <!-- BOTTOM NAVIGATION -->
 <div class="bottom-nav">
-  <div class="bottom-nav-fade-l"></div>
-  <div class="bottom-nav-fade-r"></div>
   <div class="bottom-nav-scroll">
     <button class="bottom-nav-item active" id="bnav-dashboard" onclick="showPageBottom('dashboard')">
-      <span class="bottom-nav-icon">🏠</span>
-      <span class="bottom-nav-label">হোম</span>
+      <span class="bottom-nav-icon">🏠</span><span class="bottom-nav-label">হোম</span>
     </button>
     <button class="bottom-nav-item" id="bnav-members" onclick="showPageBottom('members')">
-      <span class="bottom-nav-icon">👥</span>
-      <span class="bottom-nav-label">সদস্য</span>
+      <span class="bottom-nav-icon">👥</span><span class="bottom-nav-label">সদস্য</span>
     </button>
     <button class="bottom-nav-item" id="bnav-report" onclick="showPageBottom('report')">
-      <span class="bottom-nav-icon">💰</span>
-      <span class="bottom-nav-label">হিসাব</span>
-    </button>
-    <button class="bottom-nav-item" id="bnav-charts" onclick="showPageBottom('charts')">
-      <span class="bottom-nav-icon">📈</span>
-      <span class="bottom-nav-label">চার্ট</span>
+      <span class="bottom-nav-icon">💰</span><span class="bottom-nav-label">হিসাব</span>
     </button>
     <button class="bottom-nav-item" id="bnav-loan" onclick="showPageBottom('loan')">
-      <span class="bottom-nav-icon">💸</span>
-      <span class="bottom-nav-label">লোন</span>
+      <span class="bottom-nav-icon">💸</span><span class="bottom-nav-label">লোন</span>
     </button>
-    <button class="bottom-nav-item" id="bnav-resolution" onclick="showPageBottom('resolution')">
-      <span class="bottom-nav-icon">📋</span>
-      <span class="bottom-nav-label">রেজুলেশন</span>
-    </button>
-    <button class="bottom-nav-item" id="bnav-notice" onclick="showPageBottom('notice')">
-      <span class="bottom-nav-icon">📅</span>
-      <span class="bottom-nav-label">নোটিশ</span>
-    </button>
-    <button class="bottom-nav-item" id="bnav-search" onclick="showPageBottom('search')">
-      <span class="bottom-nav-icon">🔍</span>
-      <span class="bottom-nav-label">খুঁজুন</span>
-    </button>
-    <button class="bottom-nav-item" id="bnav-nominee" onclick="showPageBottom('nominee')">
-      <span class="bottom-nav-icon">🔒</span>
-      <span class="bottom-nav-label">নমিনী</span>
-    </button>
-    <button class="bottom-nav-item" id="bnav-audio" onclick="showPageBottom('audio')">
-      <span class="bottom-nav-icon">🎧</span>
-      <span class="bottom-nav-label">অডিও</span>
+    <button class="bottom-nav-item" id="bnav-more" onclick="openMore()">
+      <span class="bottom-nav-icon">⋯</span><span class="bottom-nav-label">আরো</span>
     </button>
   </div>
 </div>
 
+<div class="more-sheet" id="more-sheet">
+  <div class="more-backdrop" onclick="closeMore()"></div>
+  <div class="more-panel">
+    <div class="more-handle"></div>
+    <div class="more-grid">
+      <button onclick="showPageBottom('charts')"><span>📈</span>চার্ট</button>
+      <button onclick="showPageBottom('resolution')"><span>📋</span>রেজুলেশন</button>
+      <button onclick="showPageBottom('notice')"><span>📅</span>নোটিশ</button>
+      <button onclick="showPageBottom('search')"><span>🔍</span>খুঁজুন</button>
+      <button onclick="showPageBottom('nominee')"><span>🔒</span>নমিনী</button>
+      <button onclick="showPageBottom('audio')"><span>🎧</span>অডিও</button>
+    </div>
+  </div>
+</div>
+  
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
@@ -4197,5 +4185,22 @@ function nomineeLogout(){nomineeLoggedIn=null;showNomineePage();}
     });
   }
 </script>
+<script>
+var MAIN_NAV = ['dashboard','members','report','loan'];
+function syncBottomNav(page){
+  ['dashboard','members','report','loan','more'].forEach(function(k){
+    var b = document.getElementById('bnav-' + k);
+    if (b) b.classList.remove('active');
+  });
+  var key = MAIN_NAV.indexOf(page) >= 0 ? page : 'more';
+  var a = document.getElementById('bnav-' + key);
+  if (a) a.classList.add('active');
+}
+function openMore(){ document.getElementById('more-sheet').classList.add('open'); }
+function closeMore(){ document.getElementById('more-sheet').classList.remove('open'); }
+function showPageBottom(page){ closeMore(); showPage(page); }
+var _origShowPage = showPage;
+showPage = function(p){ _origShowPage(p); syncBottomNav(p); };
+</script> 
 </body>
 </html>
