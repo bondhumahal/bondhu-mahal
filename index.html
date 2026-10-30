@@ -911,6 +911,41 @@ canvas { width:100% !important; }
 .dh-stat-amt2.minus{ color:#e11d48; }
 .dh-stat-lab2{ font-size:9px; color:#8b8aa0; font-weight:600; margin-top:2px; }
 
+/* ===== নতুন: নিচের মেনু (৫টি) + আরো শিট ===== */
+.bottom-nav-scroll{display:grid;grid-template-columns:repeat(5,1fr);overflow:visible;padding:8px 6px calc(10px + env(safe-area-inset-bottom,0px));gap:2px}
+.bottom-nav-item{padding:6px 2px;align-items:center}
+.bottom-nav-icon{font-size:21px}
+.bottom-nav-label{font-size:11px;font-weight:700}
+.pages-wrap{padding-bottom:92px}
+.login-user-display{bottom:92px}
+.more-sheet{position:fixed;inset:0;z-index:9100;visibility:hidden}
+.more-sheet.open{visibility:visible}
+.more-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);opacity:0;transition:opacity .25s}
+.more-sheet.open .more-backdrop{opacity:1}
+.more-panel{position:absolute;left:0;right:0;bottom:0;background:#1e1b4b;border-radius:22px 22px 0 0;padding:10px 16px calc(24px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:transform .28s}
+.more-sheet.open .more-panel{transform:none}
+.more-handle{width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.3);margin:0 auto 14px}
+.more-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.more-grid button{border:0;background:rgba(255,255,255,.08);color:#fff;font-family:'Hind Siliguri',sans-serif;font-size:13px;font-weight:600;border-radius:16px;padding:14px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px}
+.more-grid button span{font-size:24px}
+/* ===== নতুন: ঋণ আবেদন ফর্ম ===== */
+input,textarea,select{-webkit-user-select:text !important;user-select:text !important}
+.ln-card{background:#e9e9f2;border-radius:20px;padding:16px;margin-bottom:16px;box-shadow:6px 6px 13px #c6c6d6,-6px -6px 13px #ffffff}
+.ln-open{width:100%;border:0;border-radius:14px;padding:13px;background:linear-gradient(135deg,#047857,#059669);color:#fff;font:700 14px 'Hind Siliguri',sans-serif;cursor:pointer}
+.ln-steps{display:flex;gap:6px;margin-bottom:14px}
+.ln-steps i{flex:1;height:5px;border-radius:3px;background:#d3d3e0}
+.ln-steps i.on{background:#059669}
+.ln-title{font-size:15px;font-weight:800;color:#047857}
+.ln-lab{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#2b2a3a;margin:12px 0 4px}
+.ln-card input[type=range]{width:100%;accent-color:#059669}
+.ln-in{width:100%;font:inherit;font-size:14px;padding:10px 12px;border:1px solid #d3d3e0;border-radius:10px;background:#f7f6fc;color:#2b2a3a}
+.ln-big{font-size:26px;font-weight:800;color:#047857}
+.ln-note{font-size:11px;color:#8b8aa0;margin-top:4px}
+.ln-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed #d3d3e0;font-size:13px;color:#4b4a5c}
+.ln-row b{color:#2b2a3a;text-align:right}
+.ln-btns{display:flex;gap:8px;margin-top:14px}
+.ln-btn{flex:1;border:0;border-radius:12px;padding:11px;font:700 13px 'Hind Siliguri',sans-serif;cursor:pointer;background:#059669;color:#fff}
+.ln-btn.ghost{background:#fff;color:#047857;border:1.5px solid #a7f3d0}
 </style>
 <!-- ===== PWA SUPPORT ===== -->
 <link rel="manifest" href="manifest.json">
