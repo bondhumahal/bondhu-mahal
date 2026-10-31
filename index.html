@@ -4174,6 +4174,9 @@ function nomineeLogout(){nomineeLoggedIn=null;showNomineePage();}
     <button class="bottom-nav-item" id="bnav-loan" onclick="showPageBottom('loan')">
       <span class="bottom-nav-icon">💸</span><span class="bottom-nav-label">লোন</span>
     </button>
+    <button class="bottom-nav-item" id="bnav-charts" onclick="showPageBottom('charts')">
+      <span class="bottom-nav-icon">📈</span><span class="bottom-nav-label">চার্ট</span>
+        </button>
     <button class="bottom-nav-item" id="bnav-more" onclick="openMore()">
       <span class="bottom-nav-icon">⋯</span><span class="bottom-nav-label">আরো</span>
     </button>
@@ -4185,7 +4188,6 @@ function nomineeLogout(){nomineeLoggedIn=null;showNomineePage();}
   <div class="more-panel">
     <div class="more-handle"></div>
     <div class="more-grid">
-      <button onclick="showPageBottom('charts')"><span>📈</span>চার্ট</button>
       <button onclick="showPageBottom('resolution')"><span>📋</span>রেজুলেশন</button>
       <button onclick="showPageBottom('notice')"><span>📅</span>নোটিশ</button>
       <button onclick="showPageBottom('search')"><span>🔍</span>খুঁজুন</button>
@@ -4205,9 +4207,9 @@ function nomineeLogout(){nomineeLoggedIn=null;showNomineePage();}
   }
 </script>
 <script>
-var MAIN_NAV = ['dashboard','members','report','loan'];
+var MAIN_NAV = ['dashboard','members','report','loan','charts'];
 function syncBottomNav(page){
-  ['dashboard','members','report','loan','more'].forEach(function(k){
+  ['dashboard','members','report','loan','charts','more'].forEach(function(k){
     var b = document.getElementById('bnav-' + k);
     if (b) b.classList.remove('active');
   });
