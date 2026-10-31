@@ -4339,5 +4339,84 @@ function lnDraw(){
   }
 }
 </script>
+  
+<script>
+function buildYearSummary(memberDataArr){
+  const bn2en=s=>String(s==null?'':s).replace(/[০-৯]/g,d=>'০১২৩৪৫৬৭৮৯'.indexOf(d));
+  const num=v=>Number(String(v==null?'':v).replace(/[,৳ ]/g,''))||0;
+  const MN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+  const byYear={};
+  (memberDataArr||[]).forEach(function(rows){
+    if(!rows||!Array.isArray(rows)) return;
+    const blocks=[], years=[];
+    for(let i=0;i<rows.length;i++){
+      const r=rows[i]; if(!r) continue;
+      const label=String(r[1]||'').trim();
+      if(label==='মাস'){
+        const m=[];
+        for(let k=1;k<=12;k++){
+          const x=rows[i+k];
+          if(!x||!String(x[1]||'').trim()) break;
+          m.push(num(x[2]));
+        }
+        blocks.push(m);
+      } else if(label.includes('সালের জমা')){
+        const nm=bn2en(label).match(/\d+/);
+        if(nm){ years.push(nm[0].length===2?2000+parseInt(nm[0],10):parseInt(nm[0],10)); }
+      }
+    }
+    blocks.forEach(function(m,bi){
+      const y=years[bi]; if(!y) return;
+      if(!byYear[y]) byYear[y]=Array(12).fill(0);
+      m.forEach(function(v,mi){ byYear[y][mi]+=v; });
+    });
+  });
+  const ys=Object.keys(byYear).map(Number).sort();
+  if(!ys.length) return '';
+  let year=new Date().getFullYear();
+  if(!byYear[year]) year=ys[ys.length-1];
+  const arr=byYear[year];
+  const act=[]; arr.forEach(function(v,i){ if(v>0) act.push(i); });
+  if(!act.length) return '';
+  const total=arr.reduce(function(s,v){return s+v;},0);
+  const best=Math.max.apply(null,act.map(function(i){return arr[i];}));
+  const min=Math.min.apply(null,act.map(function(i){return arr[i];}));
+  const bestIdx=arr.indexOf(best), minIdx=arr.indexOf(min);
+  const avg=Math.round(total/act.length);
+  const fmt=function(n){return '৳'+Number(n||0).toLocaleString('en-IN');};
+  let cmp='';
+  const prev=byYear[year-1];
+  if(prev){
+    const k=act[act.length-1]+1;
+    const prevSum=prev.slice(0,k).reduce(function(s,v){return s+v;},0);
+    if(prevSum>0){
+      const diff=total-prevSum;
+      if(diff>0) cmp='<div class="ys-good" style="font-size:13px;margin-top:2px">▲ গত বছরের একই সময়ের চেয়ে '+fmt(diff)+' বেশি</div>';
+      else if(diff<0) cmp='<div class="ys-bad" style="font-size:13px;margin-top:2px">▼ গত বছরের একই সময়ের চেয়ে '+fmt(-diff)+' কম</div>';
+      else cmp='<div class="ys-s" style="margin-top:2px">গত বছরের একই সময়ের সমান</div>';
+    }
+  }
+  const bars=arr.map(function(v,i){
+    if(v<=0) return '<i style="height:14%;opacity:.45"></i>';
+    const h=Math.max(14,Math.round(v/best*100));
+    return '<i'+((best>min&&i===bestIdx)?' class="best"':'')+' style="height:'+h+'%"></i>';
+  }).join('');
+  const now=new Date();
+  const left=Math.max(0,(2034-now.getFullYear())*12+(11-now.getMonth()));
+  return '<div class="ys-out">'+
+    '<div class="ys-hero">'+
+      '<div class="ys-s">'+year+' সাল · মাসিক জমা</div>'+
+      '<div class="ys-big">'+fmt(total)+'</div>'+cmp+
+      '<div class="ys-bars" role="img" aria-label="মাসিক জমার বার চার্ট">'+bars+'</div>'+
+    '</div>'+
+    '<div class="ys-chips">'+
+      '<div class="ys-chip"><div class="ys-ic" style="background:#d3ebdd">🏆</div><div class="ys-s">সেরা মাস</div><b class="ys-good">'+fmt(best)+'</b><div class="ys-s">'+MN[bestIdx]+'</div></div>'+
+      '<div class="ys-chip"><div class="ys-ic" style="background:#cfe0ef">📊</div><div class="ys-s">মাসিক গড়</div><b class="ys-avg">'+fmt(avg)+'</b><div class="ys-s">'+year+' সালে</div></div>'+
+      '<div class="ys-chip"><div class="ys-ic" style="background:#f2d3da">📉</div><div class="ys-s">সর্বনিম্ন</div><b class="ys-bad">'+fmt(min)+'</b><div class="ys-s">'+MN[minIdx]+'</div></div>'+
+    '</div>'+
+    '<div class="ys-main" style="font-size:13px;margin-top:14px">সমিতির মেয়াদ বাকি <b style="font-weight:600">'+left+' মাস</b></div>'+
+  '</div>';
+}
+</script>
 </body>
 </html>
