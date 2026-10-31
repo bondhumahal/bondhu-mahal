@@ -4206,5 +4206,107 @@ function showPageBottom(page){ closeMore(); showPage(page); }
 var _origShowPage = showPage;
 showPage = function(p){ _origShowPage(p); syncBottomNav(p); };
 </script> 
+
+<script>
+var LN = { step: 0, amt: 20000, mon: 6, who: '', why: '' };
+function lnEsc(s){
+  return String(s).replace(/[&<>"]/g, function(c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
+  });
+}
+function lnStart(){ LN.step = 1; lnDraw(); }
+function lnBack(){ LN.step = Math.max(0, LN.step - 1); lnDraw(); }
+function lnMsg(){
+  var emi = Math.ceil(LN.amt / LN.mon);
+  return 'বন্ধু মহল সমবায় সমিতি — ঋণের আবেদন\n' +
+    'আবেদনকারী: ' + LN.who + '\n' +
+    'পরিমাণ: ' + fmtTaka(LN.amt) + '\n' +
+    'মেয়াদ: ' + LN.mon + ' মাস (বিনা সুদে)\n' +
+    'মাসিক কিস্তি: ' + fmtTaka(emi) + '\n' +
+    'কারণ: ' + (LN.why || 'উল্লেখ নেই') + '\n' +
+    'তারিখ: ' + new Date().toLocaleDateString('en-GB', {year:'numeric', month:'long', day:'numeric'});
+}
+function lnShare(){
+  window.open('https://wa.me/?text=' + encodeURIComponent(lnMsg()), '_blank');
+}
+function lnNext(){
+  if (LN.step === 2){
+    LN.who = document.getElementById('ln-w').value;
+    LN.why = document.getElementById('ln-r').value.trim();
+    if (!LN.who){ showToast('আবেদনকারীর নাম বেছে নিন'); return; }
+  }
+  LN.step++;
+  lnDraw();
+}
+function lnDraw(){
+  var el = document.getElementById('ln-box');
+  if (!el) return;
+  if (LN.step === 0){
+    el.innerHTML = '<button class="ln-open" onclick="lnStart()">📝 ঋণের আবেদন করুন</button>';
+    return;
+  }
+  var emi = Math.ceil(LN.amt / LN.mon);
+  var bars = '<div class="ln-steps">' + [1,2,3].map(function(n){
+    return '<i class="' + (n <= LN.step ? 'on' : '') + '"></i>';
+  }).join('') + '</div>';
+  var h = '';
+
+  if (LN.step === 1){
+    h = bars + '<div class="ln-title">ধাপ ১: কত টাকা, কত মাস?</div>' +
+      '<div class="ln-lab"><span>ঋণের পরিমাণ</span><span id="ln-av">' + fmtTaka(LN.amt) + '</span></div>' +
+      '<input type="range" id="ln-a" min="5000" max="50000" step="1000" value="' + LN.amt + '">' +
+      '<div class="ln-lab"><span>মেয়াদ</span><span id="ln-mv">' + LN.mon + ' মাস</span></div>' +
+      '<input type="range" id="ln-m" min="1" max="6" step="1" value="' + LN.mon + '">' +
+      '<div class="ln-note" style="margin-top:12px">মাসিক কিস্তি</div>' +
+      '<div class="ln-big" id="ln-e">' + fmtTaka(emi) + '</div>' +
+      '<div class="ln-note">বিনা সুদে, সর্বোচ্চ 50,000 টাকা, মেয়াদ 6 মাস (ধারা 9)</div>' +
+      '<div class="ln-btns"><button class="ln-btn ghost" onclick="lnBack()">বাতিল</button>' +
+      '<button class="ln-btn" onclick="lnNext()">পরের ধাপ</button></div>';
+  }
+  if (LN.step === 2){
+    var opts = MEMBERS.map(function(x){
+      return '<option value="' + lnEsc(x.bn) + '"' + (x.bn === LN.who ? ' selected' : '') + '>' + lnEsc(x.bn) + '</option>';
+    }).join('');
+    h = bars + '<div class="ln-title">ধাপ ২: আবেদনকারী ও কারণ</div>' +
+      '<div class="ln-lab"><span>আবেদনকারী</span></div>' +
+      '<select id="ln-w" class="ln-in"><option value="">— নাম বেছে নিন —</option>' + opts + '</select>' +
+      '<div class="ln-lab"><span>ঋণের কারণ</span></div>' +
+      '<input id="ln-r" class="ln-in" type="text" maxlength="80" placeholder="যেমন: ব্যবসার মূলধন" value="' + lnEsc(LN.why) + '">' +
+      '<div class="ln-btns"><button class="ln-btn ghost" onclick="lnBack()">পেছনে</button>' +
+      '<button class="ln-btn" onclick="lnNext()">পরের ধাপ</button></div>';
+  }
+  if (LN.step === 3){
+    h = bars + '<div class="ln-title">ধাপ ৩: দেখে নিশ্চিত করুন</div>' +
+      '<div style="margin-top:8px">' +
+      '<div class="ln-row"><span>আবেদনকারী</span><b>' + lnEsc(LN.who) + '</b></div>' +
+      '<div class="ln-row"><span>পরিমাণ</span><b>' + fmtTaka(LN.amt) + '</b></div>' +
+      '<div class="ln-row"><span>মেয়াদ</span><b>' + LN.mon + ' মাস</b></div>' +
+      '<div class="ln-row"><span>মাসিক কিস্তি</span><b>' + fmtTaka(emi) + '</b></div>' +
+      '<div class="ln-row"><span>কারণ</span><b>' + lnEsc(LN.why || 'উল্লেখ নেই') + '</b></div></div>' +
+      '<div class="ln-btns"><button class="ln-btn ghost" onclick="lnBack()">পেছনে</button>' +
+      '<button class="ln-btn" onclick="lnNext()">আবেদন জমা দিন</button></div>';
+  }
+  if (LN.step === 4){
+    h = '<div style="text-align:center;padding:6px 0 2px">' +
+      '<div style="font-size:38px">✅</div>' +
+      '<div class="ln-title" style="margin-top:6px">আবেদন তৈরি হয়েছে</div>' +
+      '<div class="ln-note" style="margin-bottom:10px">সভাপতির অনুমোদনের জন্য নিচের বোতামে হোয়াটসঅ্যাপে পাঠান।</div></div>' +
+      '<div class="ln-btns"><button class="ln-btn" onclick="lnShare()">💬 হোয়াটসঅ্যাপে পাঠান</button></div>' +
+      '<div class="ln-btns"><button class="ln-btn ghost" onclick="LN.step=0;lnDraw()">নতুন আবেদন</button></div>';
+  }
+  el.innerHTML = h;
+
+  var a = document.getElementById('ln-a'), m = document.getElementById('ln-m');
+  if (a && m){
+    var up = function(){
+      LN.amt = +a.value; LN.mon = +m.value;
+      document.getElementById('ln-av').textContent = fmtTaka(LN.amt);
+      document.getElementById('ln-mv').textContent = LN.mon + ' মাস';
+      document.getElementById('ln-e').textContent = fmtTaka(Math.ceil(LN.amt / LN.mon));
+    };
+    a.oninput = up; m.oninput = up;
+  }
+}
+</script>
 </body>
 </html>
