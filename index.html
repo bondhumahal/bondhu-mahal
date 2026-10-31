@@ -4648,5 +4648,125 @@ function buildYearSummary(memberDataArr){
   '</div>';
 }
 </script>
+
+<script>
+async function renderResolution(){
+  var el=document.getElementById('resolution-content');
+  if(!el) return;
+  el.innerHTML='<div class="loading"><div class="spinner"></div>লোড হচ্ছে...</div>';
+
+  /* দ্রুত তথ্যের ছয়টি বক্স: দরকারমতো এখানে বদলাবেন */
+  var FACTS=[['মাসিক চাঁদা','৳2,500'],['শেষ তারিখ','১৫ তারিখ'],['জরিমানা','৳200'],['সর্বোচ্চ লোন','৳50,000'],['লোনের মেয়াদ','৬ মাস'],['সমিতির মেয়াদ','২০৩৪']];
+
+  var rows;
+  try{
+    var res=await fetch(API_URL+'?sheet=Resolution');
+    var json=await res.json();
+    rows=Array.isArray(json)?json:(json.data||[]);
+    if(!rows||!rows.length) throw new Error('empty');
+  }catch(e){
+    el.innerHTML='<div class="error-box">⚠️ রেজুলেশন লোড হয়নি।</div>';
+    return;
+  }
+
+  var bn2en=function(s){return String(s==null?'':s).replace(/[০-৯]/g,function(d){return '০১২৩৪৫৬৭৮৯'.indexOf(d)})};
+  var esc=function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')};
+
+  function titleOf(t){
+    var m=t.split(/[:：—–।\n]/)[0].trim();
+    if(m.length>=3&&m.length<=40) return m;
+    var w=t.split(/\s+/).slice(0,5).join(' ');
+    return w+(t.length>w.length?'…':'');
+  }
+  function tagOf(it){
+    if(it.sec) return it.sec;
+    var t=it.text;
+    if(/পদত্যাগ/.test(t)) return 'পদত্যাগ';
+    if(/লোন|ধার(?!া)/.test(t)) return 'লোন';
+    if(/চাঁদা|সঞ্চয়|জরিমানা|টাকা|লভ্যাংশ|লাভ/.test(t)) return 'আর্থিক';
+    if(/সদস্য|নমিনী|নমিনি|ভর্তি/.test(t)) return 'সদস্য';
+    return 'সাধারণ';
+  }
+
+  /* শিট: A=নম্বর, B=লেখা (ঐচ্ছিক: C=শিরোনাম, D=ট্যাগ) */
+  var items=[],sec='';
+  rows.forEach(function(r){
+    var a=bn2en(String(r[0]||'').trim());
+    var b=bn2en(String(r[1]||'').trim());
+    if(!a&&!b) return;
+    if(a&&!b){ sec=a; return; }
+    var it={n:a,text:b,sec:sec};
+    var ct=String(r[2]||'').trim(), cg=String(r[3]||'').trim();
+    it.title=ct||titleOf(b);
+    it.tag=cg||tagOf(it);
+    items.push(it);
+  });
+  if(!items.length){ el.innerHTML='<div class="error-box">কোনো ডেটা পাওয়া যায়নি।</div>'; return; }
+
+  var tags=[];
+  items.forEach(function(it){ if(tags.indexOf(it.tag)<0) tags.push(it.tag); });
+
+  var keyOf=function(it){return it.n+'|'+it.text.slice(0,24)};
+  var st={};
+  try{ JSON.parse(localStorage.getItem('bm_rz_star')||'[]').forEach(function(k){st[k]=1}); }catch(e){}
+  var q='',tag='সব',open={};
+
+  el.innerHTML='<div class="rz-fx">'+FACTS.map(function(f){return '<div>'+f[0]+'<b>'+f[1]+'</b></div>'}).join('')+'</div>'+
+    '<input class="rz-in" id="rz-q" type="text" placeholder="ধারা বা শব্দ লিখুন...">'+
+    '<div class="rz-chips" id="rz-tags"></div>'+
+    '<div class="rz-cnt" id="rz-cnt"></div>'+
+    '<div id="rz-list"></div>';
+
+  var list=document.getElementById('rz-list');
+
+  function isOpen(i){ return open[i]===undefined ? !!bn2en(q.trim()) : open[i]; }
+
+  function drawTags(){
+    var all=[['সব','সব'],['__star','★ প্রিয়']].concat(tags.map(function(t){return [t,t]}));
+    document.getElementById('rz-tags').innerHTML=all.map(function(p){
+      return '<div class="rz-ch'+(p[0]===tag?' on':'')+'" data-t="'+esc(p[0])+'">'+esc(p[1])+'</div>';
+    }).join('');
+  }
+
+  function draw(){
+    var qq=bn2en(q.trim()),eq=esc(qq),h='',c=0;
+    var hl=function(t){ var e=esc(t); return eq?e.split(eq).join('<span class="rz-mk">'+eq+'</span>'):e; };
+    items.forEach(function(it,i){
+      var k=keyOf(it);
+      if(tag==='__star'){ if(!st[k]) return; }
+      else if(tag!=='সব'&&it.tag!==tag) return;
+      if(qq&&(it.n+' '+it.title+' '+it.text).indexOf(qq)<0) return;
+      c++;
+      h+='<div class="rz-card"><div class="rz-hd" data-i="'+i+'">'+
+        '<div class="rz-bd">'+(it.n?esc(it.n):'•')+'</div>'+
+        '<div class="rz-tt">'+hl(it.title)+'</div>'+
+        '<span class="rz-tg">'+esc(it.tag)+'</span>'+
+        '<span class="rz-st" data-s="'+i+'" style="color:'+(st[k]?'#f59e0b':'#c4c3d6')+'">'+(st[k]?'★':'☆')+'</span>'+
+        '</div>'+(isOpen(i)?'<div class="rz-tx">'+hl(it.text).replace(/\n/g,'<br>')+'</div>':'')+'</div>';
+    });
+    list.innerHTML=h||'<div class="rz-em">কিছু পাওয়া যায়নি</div>';
+    document.getElementById('rz-cnt').textContent=(qq||tag!=='সব')?(c+'টি পাওয়া গেছে'):('মোট '+items.length+'টি নীতিমালা');
+  }
+
+  document.getElementById('rz-q').addEventListener('input',function(){ q=this.value; draw(); });
+  document.getElementById('rz-tags').addEventListener('click',function(e){
+    var t=e.target.closest('[data-t]'); if(!t) return;
+    tag=t.getAttribute('data-t'); drawTags(); draw();
+  });
+  list.addEventListener('click',function(e){
+    var s=e.target.closest('[data-s]');
+    if(s){
+      var k=keyOf(items[+s.getAttribute('data-s')]);
+      if(st[k]) delete st[k]; else st[k]=1;
+      try{ localStorage.setItem('bm_rz_star',JSON.stringify(Object.keys(st))); }catch(x){}
+      draw(); return;
+    }
+    var h=e.target.closest('[data-i]');
+    if(h){ var j=+h.getAttribute('data-i'); open[j]=!isOpen(j); draw(); }
+  });
+
+  drawTags(); draw();
+}
+</script>
 </body>
 </html>
