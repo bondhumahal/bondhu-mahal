@@ -995,6 +995,26 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:calc(77px +
 .login-user-display{bottom:92px}
 .toast{bottom:92px}
 </style>
+
+<style>
+/* ===== নতুন হেডার (৫ নম্বর) ===== */
+.header{background:#ede9fe}
+.header-inner{height:auto;background:#ede9fe}
+.header-inner-content{display:block;height:auto}
+.header-left{display:grid;grid-template-columns:1fr auto auto 1fr;align-items:center;width:100%;height:auto;gap:0;padding:6px 14px 2px}
+.header-title-wrap,.header-title{display:contents}
+.header-logo{grid-row:1;grid-column:2;width:22px;height:22px;border-radius:7px;background:#7c3aed;font-size:12px;box-shadow:none}
+.header-title h1{grid-row:1;grid-column:3;margin-left:8px;font-size:19px;font-weight:500;line-height:1.3;color:#2b2a3a;text-shadow:none}
+.header-title p{grid-row:2;grid-column:1/-1;text-align:center;margin:0;font-size:12px;color:#8b8aa0;text-shadow:none}
+.header-title p::before{content:"";display:block;height:2px;width:70%;margin:8px auto 4px;background:linear-gradient(90deg,transparent,#7c3aed,#b83280,transparent)}
+
+/* ===== নিচের গাঢ় বার ===== */
+.bottom-nav{background:#1e1b4b;box-shadow:0 6px 16px rgba(30,27,75,.4)}
+.bottom-nav-item,.bottom-nav-label{color:rgba(255,255,255,.6)}
+.bottom-nav-item.active,.bottom-nav-item.active .bottom-nav-label{color:#fff}
+.bottom-nav-item.active .bottom-nav-label{transform:translateY(-10px)}
+.bottom-nav-item.active .bottom-nav-icon{background:#7c3aed;border-color:transparent;color:#fff;box-shadow:0 0 0 4px #e8e4fc,0 4px 12px rgba(124,58,237,.5)}
+</style>
 </head>
 <body>
 
