@@ -2117,6 +2117,7 @@ async function renderCharts() {
     </div>
   `;
 
+  el.insertAdjacentHTML('afterbegin', buildYearSummary(memberDataArr));
   if (typeof Chart === 'undefined') {
     el.innerHTML = '<div class="error-box">⚠️ চার্ট লাইব্রেরি লোড হয়নি। ইন্টারনেট চেক করুন।</div>';
     return;
