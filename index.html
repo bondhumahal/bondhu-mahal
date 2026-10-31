@@ -984,6 +984,17 @@ input,textarea,select{-webkit-user-select:text !important;user-select:text !impo
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="বন্ধু মহল">
 <!-- ===== PWA SUPPORT END ===== -->
+<style>
+  
+/* ===== নিচের বার: একদম নিচে + লেখা ওপরে ওঠে ===== */
+.bottom-nav{bottom:calc(1px + env(safe-area-inset-bottom,0px))}
+body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:calc(77px + env(safe-area-inset-bottom,0px));background:#e8e4fc;z-index:8999;pointer-events:none}
+.bottom-nav-label{transition:transform .45s cubic-bezier(.34,1.45,.64,1),color .3s}
+.bottom-nav-item.active .bottom-nav-label{transform:translateY(-14px)}
+.pages-wrap{padding-bottom:100px}
+.login-user-display{bottom:92px}
+.toast{bottom:92px}
+</style>
 </head>
 <body>
 
