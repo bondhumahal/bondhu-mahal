@@ -4379,7 +4379,7 @@ function lnDraw(){
 </script>
   
 <script>
-function buildYearSummary(memberDataArr){
+function buildYearSummaryold(memberDataArr){
   const bn2en=s=>String(s==null?'':s).replace(/[০-৯]/g,d=>'০১২৩৪৫৬৭৮৯'.indexOf(d));
   const num=v=>Number(String(v==null?'':v).replace(/[,৳ ]/g,''))||0;
   const MN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
@@ -4487,6 +4487,103 @@ function buildYearSummary(memberDataArr){
   window.addEventListener('load',function(){setTimeout(applyLock,3200);});
   setTimeout(applyLock,500);
 })();
+</script>
+
+<script>
+var YS_DATA={};
+function ysShow(y){
+  var arr=YS_DATA[y];
+  var bars=document.querySelectorAll('#ys-bars i');
+  if(!arr||!bars.length) return;
+  var fmt=function(n){return '৳'+Number(n||0).toLocaleString('en-IN');};
+  var sum=function(a){return a.reduce(function(s,v){return s+v;},0);};
+  var MN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+  var act=[]; arr.forEach(function(v,i){ if(v>0) act.push(i); });
+  var total=sum(arr);
+  var best=Math.max.apply(null,arr);
+  var min=Math.min.apply(null,act.map(function(i){return arr[i];}));
+  var bi=arr.indexOf(best), mi=arr.indexOf(min);
+  document.getElementById('ys-hl').textContent=y+' সাল · মাসিক জমা';
+  document.getElementById('ys-tot').textContent=fmt(total);
+  var c=document.getElementById('ys-cmp'), prev=YS_DATA[y-1];
+  if(prev){
+    var k=act[act.length-1]+1, ps=sum(prev.slice(0,k)), d=total-ps;
+    if(d>0){ c.className='ys-good'; c.textContent='▲ গত বছরের একই সময়ের চেয়ে '+fmt(d)+' বেশি'; }
+    else if(d<0){ c.className='ys-bad'; c.textContent='▼ গত বছরের একই সময়ের চেয়ে '+fmt(-d)+' কম'; }
+    else { c.className='ys-s'; c.textContent='গত বছরের একই সময়ের সমান'; }
+  } else { c.className='ys-s'; c.textContent='প্রথম বছর — তুলনা করার মতো আগের বছর নেই'; }
+  arr.forEach(function(v,i){
+    var b=bars[i]; if(!b) return;
+    if(v<=0){ b.style.height='14%'; b.style.opacity='.45'; }
+    else { b.style.height=Math.max(14,Math.round(v/best*100))+'%'; b.style.opacity='1'; }
+    b.className=(best>min&&i===bi)?'best':'';
+  });
+  document.getElementById('ys-bv').textContent=fmt(best);
+  document.getElementById('ys-bm').textContent=MN[bi];
+  document.getElementById('ys-av').textContent=fmt(Math.round(total/act.length));
+  document.getElementById('ys-ay').textContent=y+' সালে';
+  document.getElementById('ys-mv').textContent=fmt(min);
+  document.getElementById('ys-mm').textContent=MN[mi];
+  document.querySelectorAll('.ys-yp').forEach(function(p){ p.classList.toggle('on',Number(p.getAttribute('data-y'))===y); });
+}
+function buildYearSummary(memberDataArr){
+  var bn2en=function(s){return String(s==null?'':s).replace(/[০-৯]/g,function(d){return '০১২৩৪৫৬৭৮৯'.indexOf(d);});};
+  var num=function(v){return Number(String(v==null?'':v).replace(/[,৳ ]/g,''))||0;};
+  var byYear={};
+  (memberDataArr||[]).forEach(function(rows){
+    if(!rows||!Array.isArray(rows)) return;
+    var blocks=[], years=[];
+    for(var i=0;i<rows.length;i++){
+      var r=rows[i]; if(!r) continue;
+      var label=String(r[1]||'').trim();
+      if(label==='মাস'){
+        var m=[];
+        for(var k=1;k<=12;k++){
+          var x=rows[i+k];
+          if(!x||!String(x[1]||'').trim()) break;
+          m.push(num(x[2]));
+        }
+        blocks.push(m);
+      } else if(label.indexOf('সালের জমা')>=0){
+        var nm=bn2en(label).match(/\d+/);
+        if(nm){ years.push(nm[0].length===2?2000+parseInt(nm[0],10):parseInt(nm[0],10)); }
+      }
+    }
+    blocks.forEach(function(m,bi){
+      var y=years[bi]; if(!y) return;
+      if(!byYear[y]) byYear[y]=Array(12).fill(0);
+      m.forEach(function(v,mi){ byYear[y][mi]+=v; });
+    });
+  });
+  var ys=Object.keys(byYear).map(Number).filter(function(y){
+    return byYear[y].some(function(v){return v>0;});
+  }).sort();
+  if(!ys.length) return '';
+  YS_DATA=byYear;
+  var cur=new Date().getFullYear();
+  var def=ys.indexOf(cur)>=0?cur:ys[ys.length-1];
+  var pills=ys.map(function(y){
+    return '<div class="ys-yp" data-y="'+y+'" role="button" tabindex="0" onclick="ysShow('+y+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();ysShow('+y+')}">'+y+'</div>';
+  }).join('');
+  var now=new Date();
+  var left=Math.max(0,(2034-now.getFullYear())*12+(11-now.getMonth()));
+  setTimeout(function(){ ysShow(def); },0);
+  return '<div class="ys-out">'+
+    '<div class="ys-yrs">'+pills+'</div>'+
+    '<div class="ys-hero">'+
+      '<div class="ys-s" id="ys-hl"></div>'+
+      '<div class="ys-big" id="ys-tot"></div>'+
+      '<div id="ys-cmp" style="font-size:13px;margin-top:2px;min-height:19px"></div>'+
+      '<div class="ys-bars" id="ys-bars" role="img" aria-label="মাসিক জমার বার চার্ট"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>'+
+    '</div>'+
+    '<div class="ys-chips">'+
+      '<div class="ys-chip"><div class="ys-ic" style="background:#d3ebdd">🏆</div><div class="ys-s">সেরা মাস</div><b class="ys-good" id="ys-bv"></b><div class="ys-s" id="ys-bm"></div></div>'+
+      '<div class="ys-chip"><div class="ys-ic" style="background:#cfe0ef">📊</div><div class="ys-s">মাসিক গড়</div><b class="ys-avg" id="ys-av"></b><div class="ys-s" id="ys-ay"></div></div>'+
+      '<div class="ys-chip"><div class="ys-ic" style="background:#f2d3da">📉</div><div class="ys-s">সর্বনিম্ন</div><b class="ys-bad" id="ys-mv"></b><div class="ys-s" id="ys-mm"></div></div>'+
+    '</div>'+
+    '<div class="ys-main" style="font-size:13px;margin-top:14px">সমিতির মেয়াদ বাকি <b style="font-weight:600">'+left+' মাস</b></div>'+
+  '</div>';
+}
 </script>
 </body>
 </html>
