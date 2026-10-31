@@ -4451,5 +4451,37 @@ function buildYearSummary(memberDataArr){
   '</div>';
 }
 </script>
+
+<script>
+(function(){
+  var cur='dashboard';
+  function fits(){
+    var d=document.getElementById('dash-content');
+    var nav=document.querySelector('.bottom-nav');
+    if(!d||!nav) return false;
+    var contentBottom=d.getBoundingClientRect().bottom+window.scrollY;
+    var navTop=nav.getBoundingClientRect().top;
+    return contentBottom<=navTop;
+  }
+  function applyLock(){
+    var on=(cur==='dashboard')&&fits();
+    document.documentElement.classList.toggle('home-lock',on);
+    document.body.classList.toggle('home-lock',on);
+    if(on) window.scrollTo(0,0);
+  }
+  var prev=showPage;
+  showPage=function(p){
+    prev(p);
+    cur=p;
+    setTimeout(applyLock,60);
+  };
+  var dc=document.getElementById('dash-content');
+  if(dc) new MutationObserver(function(){setTimeout(applyLock,60);}).observe(dc,{childList:true,subtree:true});
+  window.addEventListener('resize',applyLock);
+  window.addEventListener('orientationchange',function(){setTimeout(applyLock,300);});
+  window.addEventListener('load',function(){setTimeout(applyLock,3200);});
+  setTimeout(applyLock,500);
+})();
+</script>
 </body>
 </html>
